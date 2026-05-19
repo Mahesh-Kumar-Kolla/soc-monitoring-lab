@@ -1,0 +1,43 @@
+title: RDP Brute-Force Followed by Successful Authentication
+id: f6a7b8c9-d0e1-2345-fabc-345678900005
+status: test
+description: Detects an RDP brute-force attack (three or more failures from the
+  same source IP within 120 seconds) followed by a successful RDP session establishment.
+  The combination of prior failures and success is a strong indicator of credential
+  guessing leading to unauthorized access.
+author: Mahesh Kumar Kolla
+date: 2026/05/03
+modified: 2026/05/15
+references:
+  - https://attack.mitre.org/techniques/T1021/001/
+tags:
+  - attack.lateral_movement
+  - attack.t1021
+  - attack.t1021.001
+logsource:
+  product: zeek
+  service: conn
+detection:
+  rdp_failures:
+    dst_port: 3389
+    proto: tcp
+    conn_state:
+      - REJ
+      - RSTO
+  rdp_success:
+    dst_port: 3389
+    proto: tcp
+    conn_state: SF
+  condition: rdp_failures | count() by src_ip >= 3 | near rdp_success by src_ip
+timeframe: 120s
+falsepositives:
+  - RDP clients with unstable connections causing multiple reconnects
+  - Network equipment causing TCP resets on legitimate RDP sessions
+  - Internal security scanning tools probing RDP availability
+level: high
+fields:
+  - src_ip
+  - dst_ip
+  - dst_port
+  - conn_state
+  - timestamp

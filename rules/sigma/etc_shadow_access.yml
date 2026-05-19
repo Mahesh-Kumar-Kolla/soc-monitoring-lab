@@ -1,0 +1,54 @@
+title: Unauthorized Read of /etc/shadow
+id: d4e5f6a7-b8c9-0123-defa-123456789003
+status: test
+description: Detects any process outside the root or shadow group opening /etc/shadow
+  for reading. The /etc/shadow file contains hashed passwords and should only be
+  accessed by PAM, passwd, and authorised administrative utilities. Unauthorised
+  access indicates credential harvesting (T1003.008) or privilege escalation probing.
+author: Mahesh Kumar Kolla
+date: 2026/05/02
+modified: 2026/05/15
+references:
+  - https://attack.mitre.org/techniques/T1003/008/
+tags:
+  - attack.credential_access
+  - attack.t1003
+  - attack.t1003.008
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    type: PATH
+    name: /etc/shadow
+    nametype: NORMAL
+    key: shadow_read
+  filter_legitimate:
+    uid:
+      - 0
+    comm:
+      - passwd
+      - chpasswd
+      - shadow
+      - useradd
+      - usermod
+      - chage
+      - chsh
+      - login
+      - sshd
+      - su
+      - sudo
+  condition: selection and not filter_legitimate
+falsepositives:
+  - Backup utilities running as root — add specific comm names to filter_legitimate
+  - Configuration management agents (Ansible, Puppet) with root access
+  - Daily backup script reading /etc/shadow — exclude by cron UID or comm name
+level: high
+fields:
+  - uid
+  - gid
+  - comm
+  - exe
+  - key
+  - name
+  - timestamp

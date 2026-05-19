@@ -1,0 +1,37 @@
+title: SSH Brute-Force — Distributed Low-and-Slow Attack
+id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+status: test
+description: Detects a distributed SSH password-spraying campaign where multiple
+  source IPs each contribute a small number of authentication failures. Threshold
+  of three or more distinct source IPs each with at least three failures within a
+  300-second window avoids single-source signature evasion.
+author: Mahesh Kumar Kolla
+date: 2026/05/01
+modified: 2026/05/15
+references:
+  - https://attack.mitre.org/techniques/T1110/001/
+  - https://attack.mitre.org/techniques/T1110/003/
+tags:
+  - attack.credential_access
+  - attack.t1110
+  - attack.t1110.001
+  - attack.t1110.003
+logsource:
+  product: linux
+  service: auth
+detection:
+  selection:
+    keywords:
+      - 'Failed password for'
+      - 'Invalid user'
+  condition: selection | count() by src_ip >= 3 | count(src_ip) >= 3
+timeframe: 300s
+falsepositives:
+  - Distributed monitoring probes from multiple jump hosts performing health checks
+  - Internal red team exercises — verify with change calendar
+level: medium
+fields:
+  - src_ip
+  - dst_port
+  - user
+  - timestamp

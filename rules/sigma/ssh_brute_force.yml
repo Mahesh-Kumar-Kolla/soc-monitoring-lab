@@ -1,0 +1,33 @@
+title: SSH Brute-Force — Multiple Authentication Failures
+id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+status: test
+description: Detects an SSH brute-force attack by identifying five or more failed
+  authentication attempts from a single source IP within a 60-second window.
+author: Mahesh Kumar Kolla
+date: 2026/05/01
+modified: 2026/05/15
+references:
+  - https://attack.mitre.org/techniques/T1110/001/
+tags:
+  - attack.credential_access
+  - attack.t1110
+  - attack.t1110.001
+logsource:
+  product: linux
+  service: auth
+detection:
+  selection:
+    keywords:
+      - 'Failed password for'
+      - 'Invalid user'
+  condition: selection | count() by src_ip > 5
+timeframe: 60s
+falsepositives:
+  - SSH key negotiation retries from automation scripts — verify src_ip against known_good_hosts
+  - Misconfigured SSH clients attempting multiple key types
+level: high
+fields:
+  - src_ip
+  - dst_port
+  - user
+  - timestamp

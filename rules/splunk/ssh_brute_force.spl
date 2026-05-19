@@ -1,0 +1,28 @@
+| Comment("Rule: SSH Brute-Force Correlation")
+| Comment("Technique: T1110.001 | Severity: High | Schedule: every 5 minutes")
+| Comment("Description: Identifies source IPs generating 5+ failed SSH auth attempts within 60 seconds")
+
+index=soc_lab sourcetype=linux:auth
+    (message="Failed password for*" OR message="Invalid user*")
+    earliest=-5m latest=now
+| rex field=_raw "Failed password for (?:invalid user )?(?P<user>\S+) from (?P<src_ip>\S+) port"
+| rex field=_raw "Invalid user (?P<user>\S+) from (?P<src_ip>\S+) port"
+| eval src_ip=coalesce(src_ip, "unknown")
+| stats
+    count AS failure_count,
+    dc(user) AS distinct_users,
+    earliest(_time) AS first_seen,
+    latest(_time) AS last_seen,
+    values(user) AS attempted_users
+    BY src_ip
+| where failure_count >= 5
+| eval duration_secs = last_seen - first_seen
+| where duration_secs <= 60
+| eval
+    first_seen=strftime(first_seen, "%Y-%m-%d %H:%M:%S"),
+    last_seen=strftime(last_seen, "%Y-%m-%d %H:%M:%S"),
+    mitre_technique="T1110.001",
+    alert_name="SSH Brute-Force — Multiple Failures",
+    severity="HIGH"
+| table alert_name, severity, mitre_technique, src_ip, failure_count, distinct_users, attempted_users, duration_secs, first_seen, last_seen
+| sort -failure_count

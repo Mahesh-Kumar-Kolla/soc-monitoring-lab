@@ -1,0 +1,43 @@
+title: LSASS Memory Dump via /proc Filesystem Access
+id: c3d4e5f6-a7b8-9012-cdef-012345678902
+status: test
+description: Detects access to the /proc/<pid>/mem pseudo-file of the LSASS-equivalent
+  process (or any high-privilege process) by a non-root user, which is indicative
+  of in-memory credential extraction tools or debugger-based dumping techniques.
+author: Mahesh Kumar Kolla
+date: 2026/05/02
+modified: 2026/05/15
+references:
+  - https://attack.mitre.org/techniques/T1003/001/
+  - https://www.man7.org/linux/man-pages/man5/proc.5.html
+tags:
+  - attack.credential_access
+  - attack.t1003
+  - attack.t1003.001
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    type: SYSCALL
+    syscall:
+      - openat
+      - open
+    key: proc_mem_access
+  filter_root:
+    uid: 0
+  filter_gdb:
+    comm: gdb
+  condition: selection and not 1 of filter_*
+falsepositives:
+  - Legitimate debuggers (gdb, strace) used by developers — filtered by comm field
+  - Security scanning tools with elevated privileges
+  - Java/JVM garbage collection accessing /proc/self/mem
+level: critical
+fields:
+  - uid
+  - pid
+  - comm
+  - exe
+  - key
+  - timestamp

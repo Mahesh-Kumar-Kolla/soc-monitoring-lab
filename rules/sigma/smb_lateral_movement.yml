@@ -1,0 +1,43 @@
+title: Suspicious SMB Lateral Movement
+id: e5f6a7b8-c9d0-1234-efab-234567890004
+status: test
+description: Detects lateral movement over SMB by correlating a new SMB connection
+  from a source that has not previously communicated with the destination, combined
+  with a successful authentication event within a 5-minute window. Zeek conn.log
+  provides the network layer; auth.log provides the authentication outcome.
+author: Mahesh Kumar Kolla
+date: 2026/05/03
+modified: 2026/05/15
+references:
+  - https://attack.mitre.org/techniques/T1021/002/
+  - https://docs.zeek.org/en/master/logs/conn.html
+tags:
+  - attack.lateral_movement
+  - attack.t1021
+  - attack.t1021.002
+logsource:
+  product: zeek
+  service: conn
+detection:
+  smb_connection:
+    dst_port: 445
+    proto: tcp
+    conn_state: SF
+  auth_success:
+    keywords:
+      - 'session opened for user'
+      - 'Accepted password for'
+      - 'Accepted publickey for'
+  condition: smb_connection and auth_success
+timeframe: 5m
+falsepositives:
+  - Samba health-check scripts and monitoring agents — exclude known service accounts
+  - Legitimate file share access from IT administration hosts
+  - Domain controller synchronisation traffic
+level: high
+fields:
+  - src_ip
+  - dst_ip
+  - dst_port
+  - user
+  - timestamp
